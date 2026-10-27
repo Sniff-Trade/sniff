@@ -1,0 +1,22 @@
+name = "sniff-api"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Create with `npx wrangler d1 create sniff` and paste the database_id here.
+[[d1_databases]]
+binding = "DB"
+database_name = "sniff"
+database_id = "6e72d3ec-43fa-49b3-8268-9c308d4dd4da"
+
+[vars]
+# $SNIFF mint after launch. Empty = keys not on sale yet (free tier still works).
+TOKEN_ADDRESS = ""
+TOKEN_DECIMALS = "6"
+# $SNIFF burned per KEY_DAYS days of an API key.
+KEY_PRICE = "100000"
+KEY_DAYS = "30"
+FREE_PER_DAY = "30"
+KEY_PER_DAY = "20000"
+# Public site, used in links returned by the API.
+SITE_URL = "https://snifftrade.fun"
+# Secret (not here): SOL_RPC_URL = your Helius (or other) mainnet RPC url, set with `npx wrangler secret put SOL_RPC_URL`

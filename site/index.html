@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sniff — token checks for AI agents on Solana</title>
+  <meta name="description" content="Sniff smells a rug before your agent buys it. Mint and freeze authority, launch bundles, dev sells, holder concentration and copycats for any pump.fun token. MCP server, REST API and a checker for humans.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sniff — smell the rug before you buy it">
+  <meta property="og:description" content="Before your agent buys a Solana token, it asks Sniff. Score, verdict, every reason. One MCP link for Claude, Cursor and any agent.">
+  <meta property="og:image" content="https://snifftrade.fun/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://snifftrade.fun/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@snifftrade_sol">
+  <meta name="twitter:image" content="https://snifftrade.fun/og-image.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff8a3d'/%3E%3Cpath d='M13 52V31c0-9 6-15 14-15 6 0 10 3 12 7h11c5 0 8 3 8 7v3c0 4-3 6-7 6H38c-1 4-4 7-8 8v5z' fill='%23110f0c'/%3E%3Ccircle cx='54' cy='28.5' r='4.2' fill='%23110f0c'/%3E%3Cpath d='M19 19c-5 1-7 7-6 14 1 6 3 11 6 12 2 0 3-2 3-5l1-17c0-3-1-4-4-4z' fill='%23110f0c' stroke='%23ff8a3d' stroke-width='1.8'/%3E%3Ccircle cx='31' cy='25' r='2.3' fill='%23ff8a3d'/%3E%3Cpath d='M41 37.5h9' stroke='%23ff8a3d' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --bg: #0f0e0b;
+      --bg-2: #16140f;
+      --card: #1b1913;
+      --card-2: #221f18;
+      --bone: #efe8d8;
+      --bone-2: #c9c1ae;
+      --muted: #8e8775;
+      --line: #2e2a21;
+      --line-2: #3d382c;
+      --orange: #ff8a3d;
+      --orange-2: #ffb07a;
+      --orange-soft: rgba(255, 138, 61, .12);
+      --clean: #8fe38a;
+      --clean-soft: rgba(143, 227, 138, .12);
+      --suspect: #f4c44f;
+      --suspect-soft: rgba(244, 196, 79, .12);
+      --rotten: #c27bff;
+      --rotten-soft: rgba(194, 123, 255, .13);
+      --display: "Bricolage Grotesque", system-ui, sans-serif;
+      --sans: "Inter", system-ui, sans-serif;
+      --mono: "DM Mono", ui-monospace, Consolas, monospace;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--bone); font: 16px/1.6 var(--sans); overflow-x: hidden; }
+    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1; background: radial-gradient(900px 500px at 85% -10%, rgba(255, 138, 61, .10), transparent 60%), radial-gradient(700px 400px at -10% 30%, rgba(194, 123, 255, .05), transparent 60%); }
+    a { color: inherit; }
+    h1, h2, h3, p { margin: 0; }
+    code, .mono { font-family: var(--mono); }
+    .wrap { max-width: 1180px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+    .page { display: none; }
+    .page.on { display: block; }
+    svg.i { width: 18px; height: 18px; flex: none; }
+
+    /* header */
+    .top { position: sticky; top: 0; z-index: 20; background: rgba(15, 14, 11, .86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+    .nav { display: flex; align-items: center; gap: 20px; height: 66px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 800 23px var(--display); letter-spacing: -.02em; }
+    .brand svg { width: 36px; height: 36px; }
+    .menu { display: flex; gap: 2px; margin-left: auto; }
+    .menu a { padding: 7px 12px; text-decoration: none; font-weight: 500; font-size: 14.5px; color: var(--bone-2); border-radius: 8px; }
+    .menu a:hover { color: var(--bone); background: var(--card); }
+    .menu a.on { color: var(--orange); background: var(--orange-soft); }
+    .burger { display: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--bone); font: 600 15px var(--sans); text-decoration: none; cursor: pointer; white-space: nowrap; transition: border-color .15s, background .15s, transform .08s; }
+    .btn:hover { border-color: var(--orange); }
+    .btn:active { transform: scale(.98); }
+    .btn.hot { background: var(--orange); border-color: var(--orange); color: #1a0e04; }
+    .btn.hot:hover { background: var(--orange-2); }
+    .btn.sm { height: 34px; padding: 0 14px; font-size: 13.5px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* hero */
+    .hero { display: grid; grid-template-columns: 1.12fr .88fr; gap: 44px; align-items: center; padding-top: 70px; padding-bottom: 20px; }
+    .kicker { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px; font: 500 12.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--bone-2); }
+    .kicker i { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); display: inline-block; box-shadow: 0 0 0 4px var(--orange-soft); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(255, 138, 61, 0); } }
+    .hero h1 { font: 800 clamp(48px, 7.2vw, 96px)/.93 var(--display); letter-spacing: -.045em; margin: 22px 0 20px; }
+    .hero h1 em { font-style: normal; color: var(--orange); }
+    .lede { font-size: 19px; color: var(--bone-2); max-width: 600px; }
+    .checker { display: flex; gap: 10px; margin-top: 30px; max-width: 660px; padding: 6px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); }
+    .checker:focus-within { border-color: var(--orange); box-shadow: 0 0 0 4px var(--orange-soft); }
+    .checker input { flex: 1; min-width: 0; height: 48px; padding: 0 18px; border: 0; background: transparent; font: 15px var(--mono); color: var(--bone); outline: 0; }
+    .checker input::placeholder { color: var(--muted); }
+    .checker .btn { height: 48px; }
+    .fine { font-size: 13.5px; color: var(--muted); margin-top: 12px; }
+    .fine a { color: var(--bone); font-weight: 600; }
+
+    /* sample card */
+    .sample { position: relative; padding: 26px; border: 1px solid var(--line-2); border-radius: 22px; background: linear-gradient(180deg, var(--card-2), var(--card)); }
+    .sample h3 { font: 700 15px var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 14px; }
+    .sample .row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font: 14px var(--mono); }
+    .sample .row:last-of-type { border-bottom: 0; }
+    .sample .row span { color: var(--muted); }
+    .sample .row b { font-weight: 500; text-align: right; }
+    .sample .row b.bad { color: var(--rotten); }
+    .trail { position: absolute; right: -8px; bottom: -26px; width: 160px; opacity: .55; pointer-events: none; }
+
+    /* verdict badges */
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font: 800 15px var(--display); letter-spacing: .04em; text-transform: uppercase; }
+    .badge::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    .badge.CLEAN { color: var(--clean); background: var(--clean-soft); }
+    .badge.SUSPECT { color: var(--suspect); background: var(--suspect-soft); }
+    .badge.ROTTEN { color: var(--rotten); background: var(--rotten-soft); }
+    .badge.big { font-size: 26px; padding: 10px 22px; }
+    .badge.big::before { width: 13px; height: 13px; }
+    .badge-float { position: absolute; right: 20px; top: 20px; }
+
+    /* sections */
+    .sec { padding-top: 92px; }
+    .label { font: 500 12.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--orange); margin-bottom: 12px; }
+    .sec h2 { font: 800 clamp(32px, 4.4vw, 54px)/1.02 var(--display); letter-spacing: -.035em; }
+    .sec .sub { color: var(--bone-2); max-width: 680px; margin-top: 14px; font-size: 17px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+    .card h3 { font: 700 21px var(--display); letter-spacing: -.015em; margin-bottom: 8px; }
+    .card p { color: var(--bone-2); font-size: 15px; }
+    .ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--orange-soft); color: var(--orange); margin-bottom: 18px; }
+    .ico svg { width: 22px; height: 22px; }
+    .codebox { margin-top: 14px; background: #0a0907; border: 1px solid var(--line); color: var(--bone); border-radius: 14px; padding: 14px 16px; font: 13px/1.7 var(--mono); overflow-x: auto; white-space: pre; position: relative; }
+    .codebox .cp { position: absolute; top: 8px; right: 8px; background: var(--card-2); color: var(--bone-2); border: 1px solid var(--line-2); border-radius: 8px; font: 500 12px var(--mono); padding: 4px 9px; cursor: pointer; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 18px; }
+    .tab { padding: 7px 14px; border: 1px solid var(--line-2); border-radius: 999px; background: transparent; color: var(--bone-2); font: 500 13.5px var(--sans); cursor: pointer; }
+    .tab[aria-selected="true"] { background: var(--orange); border-color: var(--orange); color: #1a0e04; }
+    .verdicts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+    .verdicts .card p { margin-top: 16px; }
+    .table-wrap { overflow-x: auto; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+    th { text-align: left; font: 500 11.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 10px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+    td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--bone-2); }
+    td b { color: var(--bone); }
+    .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font: 500 12px var(--mono); white-space: nowrap; }
+    .pill.CLEAN { color: var(--clean); background: var(--clean-soft); }
+    .pill.SUSPECT { color: var(--suspect); background: var(--suspect-soft); }
+    .pill.ROTTEN { color: var(--rotten); background: var(--rotten-soft); }
+
+    /* tiers */
+    .tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 32px; }
+    .tier { position: relative; }
+    .tier .amt { font: 800 30px var(--display); letter-spacing: -.03em; margin: 6px 0 2px; }
+    .tier .amt small { font: 500 13px var(--mono); color: var(--muted); letter-spacing: 0; }
+    .tier ul { list-style: none; padding: 0; margin: 14px 0 0; }
+    .tier li { display: flex; gap: 10px; padding: 7px 0; font-size: 14.5px; color: var(--bone-2); border-top: 1px solid var(--line); }
+    .tier li svg { color: var(--orange); margin-top: 3px; width: 15px; height: 15px; flex: none; }
+    .tier.hot { border-color: var(--orange); background: linear-gradient(180deg, rgba(255, 138, 61, .08), var(--card) 60%); }
+    .tag { display: inline-block; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .tier.hot .tag { color: var(--orange); }
+
+    /* split bar (fees) */
+    .split { display: flex; height: 54px; border-radius: 14px; overflow: hidden; margin-top: 18px; font: 700 15px var(--display); }
+    .split div { display: flex; align-items: center; padding: 0 16px; }
+
+    /* report */
+    .report { margin-top: 26px; }
+    .rep-head { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+    .rep-head h2 { font: 800 clamp(34px, 5vw, 58px)/1 var(--display); letter-spacing: -.035em; }
+    .rep-head .addr { font: 13px var(--mono); color: var(--muted); margin-top: 8px; overflow-wrap: anywhere; }
+    .gauge { display: flex; align-items: baseline; gap: 6px; margin-top: 16px; }
+    .gauge b { font: 800 66px/1 var(--display); letter-spacing: -.04em; }
+    .gauge span { font: 500 18px var(--mono); color: var(--muted); }
+    .bar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 10px; max-width: 520px; }
+    .bar i { display: block; height: 100%; border-radius: 999px; }
+    .rep-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 16px; }
+    .reason { display: grid; grid-template-columns: 50px 1fr; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); color: var(--bone-2); }
+    .reason .imp { font: 500 15px var(--mono); text-align: right; }
+    .reason.high .imp { color: var(--rotten); }
+    .reason.medium .imp { color: var(--suspect); }
+    .reason.low .imp { color: var(--muted); }
+    .good, .noteline { display: flex; gap: 10px; padding: 8px 0; color: var(--bone-2); font-size: 15px; }
+    .good svg { color: var(--clean); margin-top: 4px; width: 15px; height: 15px; flex: none; }
+    .noteline { color: var(--muted); font-size: 14px; }
+    .noteline svg { margin-top: 3px; width: 15px; height: 15px; flex: none; }
+    .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font: 13.5px var(--mono); }
+    .kv span { color: var(--muted); }
+    .kv b { font-weight: 500; text-align: right; }
+    .kv a { color: var(--orange); }
+    .loading { padding: 40px 0; font: 15px var(--mono); color: var(--muted); display: flex; align-items: center; gap: 12px; }
+    .loading .sniffer { width: 34px; animation: sniff .9s ease-in-out infinite; }
+    @keyframes sniff { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px) rotate(-4deg); } }
+    .err { margin-top: 20px; padding: 14px 18px; border: 1px solid var(--rotten); border-radius: 14px; background: var(--rotten-soft); }
+
+    /* docs */
+    .docs { display: grid; grid-template-columns: 236px minmax(0, 1fr) 200px; gap: 32px; padding-top: 40px; align-items: start; }
+    .side, .toc { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow-y: auto; }
+    .side b { display: block; font: 500 11.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 20px 0 6px 10px; }
+    .side b:first-child { margin-top: 0; }
+    .side a, .toc a { display: block; padding: 6px 10px; border-radius: 8px; text-decoration: none; color: var(--bone-2); font-size: 14.5px; }
+    .side a:hover, .toc a:hover { background: var(--card); color: var(--bone); }
+    .side a.on { background: var(--orange-soft); color: var(--orange); }
+    .toc p { font: 500 11.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px 10px; }
+    .toc a { font-size: 13.5px; padding: 4px 10px; }
+    .doc { min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 36px 42px; }
+    .crumbs { font: 12.5px var(--mono); color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .doc h1 { font: 800 42px/1.05 var(--display); letter-spacing: -.035em; margin: 10px 0 18px; }
+    .doc h2 { font: 700 24px var(--display); margin: 32px 0 10px; scroll-margin-top: 90px; }
+    .doc p, .doc li { color: var(--bone-2); }
+    .doc p + p { margin-top: 12px; }
+    .doc ul, .doc ol { padding-left: 22px; }
+    .doc li { margin: 6px 0; }
+    .doc b { color: var(--bone); }
+    .doc a { color: var(--orange); font-weight: 600; }
+    .doc code { background: var(--card-2); padding: 1px 6px; border-radius: 5px; font-size: 13.5px; overflow-wrap: anywhere; }
+    .doc .codebox code { background: none; padding: 0; }
+    .note { margin-top: 18px; padding: 14px 16px; border-left: 3px solid var(--orange); background: var(--orange-soft); border-radius: 0 12px 12px 0; color: var(--bone); }
+    .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 38px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .pager a { display: block; padding: 12px 16px; border: 1px solid var(--line-2); border-radius: 14px; text-decoration: none; }
+    .pager a:hover { border-color: var(--orange); }
+    .pager small { display: block; font: 12px var(--mono); color: var(--muted); }
+    .pager b { font: 700 17px var(--display); }
+    .pager .nx { grid-column: 2; text-align: right; }
+
+    /* misc pages */
+    .pagehead { padding-top: 60px; padding-bottom: 6px; max-width: 880px; }
+    .pagehead h1 { font: 800 clamp(42px, 6.4vw, 78px)/.98 var(--display); letter-spacing: -.04em; margin-top: 12px; }
+    .road { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 32px; }
+    .road ul { padding-left: 0; list-style: none; margin: 12px 0 0; }
+    .road li { display: flex; gap: 10px; padding: 7px 0; font-size: 14.5px; color: var(--bone-2); border-top: 1px solid var(--line); }
+    .road li svg { width: 15px; height: 15px; margin-top: 3px; flex: none; color: var(--muted); }
+    .road li.ok svg { color: var(--clean); }
+    .road .ph { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .road .now { border-color: var(--orange); }
+    .road .now .ph { color: var(--orange); }
+    .log { display: grid; gap: 12px; max-width: 820px; margin-top: 28px; }
+    .log .card b { font: 700 19px var(--display); }
+    .log .card small { margin-left: 10px; font: 12.5px var(--mono); color: var(--muted); }
+    .keybox { display: grid; gap: 12px; max-width: 660px; }
+    .step { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
+    .step .n { width: 32px; height: 32px; border-radius: 50%; background: var(--card-2); border: 1px solid var(--line-2); display: grid; place-items: center; font: 500 14px var(--mono); }
+    .step.done .n { background: var(--clean); color: #08200a; border-color: var(--clean); }
+    .step p { color: var(--bone-2); font-size: 15px; }
+    .step input { width: 100%; height: 42px; margin-top: 8px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); color: var(--bone); font: 14px var(--mono); outline: 0; }
+    .step input:focus { border-color: var(--orange); }
+    .keyout { margin-top: 10px; padding: 14px; border: 1px dashed var(--clean); border-radius: 12px; background: var(--clean-soft); font: 500 14px var(--mono); overflow-wrap: anywhere; }
+    .ca { margin-top: 10px; padding: 12px 14px; border: 1px dashed var(--line-2); border-radius: 12px; font: 13px var(--mono); overflow-wrap: anywhere; background: var(--bg); }
+    .soon { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--orange-soft); color: var(--orange); font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: middle; }
+    .radar-demo { position: relative; overflow: hidden; }
+    .radar-demo .lock { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(180deg, rgba(15, 14, 11, 0) 20%, rgba(15, 14, 11, .92) 70%); }
+    .radar-demo .lock div { text-align: center; padding-top: 120px; }
+    footer { margin-top: 100px; border-top: 1px solid var(--line); background: var(--bg-2); }
+    .foot { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 20px; padding-top: 36px; padding-bottom: 24px; }
+    .foot b { display: block; font: 700 16px var(--display); margin-bottom: 8px; }
+    .foot a:not(.brand) { display: block; text-decoration: none; color: var(--bone-2); padding: 3px 0; font-size: 14.5px; }
+    .foot a:hover { color: var(--orange); }
+    .legal { padding-bottom: 36px; font-size: 13px; color: var(--muted); }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--bone); color: var(--bg); padding: 11px 18px; border-radius: 999px; font: 600 14px var(--sans); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 40; max-width: calc(100% - 32px); text-align: center; }
+    .toast.on { opacity: 1; }
+
+    @media (max-width: 1100px) { .docs { grid-template-columns: 210px minmax(0, 1fr); } .toc { display: none; } .road, .tiers { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 900px) {
+      .burger { display: inline-flex; margin-left: auto; }
+      .menu { display: none; position: absolute; top: 66px; left: 0; right: 0; flex-direction: column; padding: 10px 16px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+      .menu.open { display: flex; }
+      .menu a { padding: 12px; }
+      .hero, .rep-grid, .grid2 { grid-template-columns: 1fr; }
+      .grid3, .verdicts { grid-template-columns: 1fr; }
+      .docs { grid-template-columns: 1fr; padding-top: 22px; }
+      .side { position: static; max-height: none; display: flex; flex-wrap: wrap; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+      .side b { width: 100%; margin: 8px 0 2px 6px; }
+      .doc { padding: 24px 18px; }
+      .foot { grid-template-columns: 1fr 1fr; }
+      .rep-head { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding-left: 16px; padding-right: 16px; }
+      .checker { flex-direction: column; border-radius: 22px; }
+      .checker input { flex: none; }
+      .road, .tiers { grid-template-columns: 1fr; }
+      .badge.big { font-size: 20px; }
+      .doc h1 { font-size: 32px; }
+      .nav .hide-sm { display: none; }
+      .split { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ff8a3d"/><path d="M13 52V31c0-9 6-15 14-15 6 0 10 3 12 7h11c5 0 8 3 8 7v3c0 4-3 6-7 6H38c-1 4-4 7-8 8v5z" fill="#110f0c"/><circle cx="54" cy="28.5" r="4.2" fill="#110f0c"/><path d="M19 19c-5 1-7 7-6 14 1 6 3 11 6 12 2 0 3-2 3-5l1-17c0-3-1-4-4-4z" fill="#110f0c" stroke="#ff8a3d" stroke-width="1.8"/><circle cx="31" cy="25" r="2.3" fill="#ff8a3d"/><path d="M41 37.5h9" stroke="#ff8a3d" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-nose" viewBox="0 0 24 24"><path d="M4 13c0-4 3.5-7 8-7s8 3 8 7-3.5 5-8 5-8-1-8-5z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9.5" cy="12.5" r="1.4" fill="currentColor"/><circle cx="14.5" cy="12.5" r="1.4" fill="currentColor"/></symbol>
+      <symbol id="i-chain" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-gavel" viewBox="0 0 24 24"><path d="M4 20h10M13 4l6 6M10 7l6 6M11.5 5.5l-4 4 6 6 4-4M9 12l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 12l6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5 1 1 1.5 2 1.5 3.5C12 9 12 6 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 12l8-8M16 7l2 2M14 9l2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-out" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="top">
+    <div class="wrap nav">
+      <a class="brand" href="#/"><svg><use href="#logo"/></svg>Sniff</a>
+      <nav class="menu" id="menu">
+        <a href="#/" data-nav="home">Check</a>
+        <a href="#/agents" data-nav="agents">For agents</a>
+        <a href="#/radar" data-nav="radar">Radar</a>
+        <a href="#/token" data-nav="token">$SNIFF</a>
+        <a href="#/keys" data-nav="keys">API keys</a>
+        <a href="#/docs/introduction" data-nav="docs">Docs</a>
+        <a href="#/roadmap" data-nav="roadmap">Roadmap</a>
+      </nav>
+      <button class="btn sm burger" id="burger" aria-label="Menu"><svg class="i"><use href="#i-menu"/></svg></button>
+      <a class="btn sm hot hide-sm" id="nav-buy" href="#/token">Get $SNIFF</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= HOME ================= -->
+    <section class="page" data-page="home">
+      <div class="wrap hero">
+        <div>
+          <span class="kicker"><i></i>MCP · REST · Solana · pump.fun</span>
+          <h1>Smell the rug <em>before</em> you buy it.</h1>
+          <p class="lede">Your agent sniffs every token first. In seconds it gets a score from 0 to 100, a verdict and every reason: live mint or freeze authority, launch bundles, a dev who already sold, whales, copycats.</p>
+          <form class="checker" id="home-form">
+            <input id="home-in" placeholder="Paste a token mint address" spellcheck="false" autocomplete="off" aria-label="Token mint address">
+            <button class="btn hot" type="submit">Sniff it</button>
+          </form>
+          <p class="fine">Free: <span class="free-n">30</span> checks a day. Agents connect with one link: <a href="#/agents">set up MCP</a>.</p>
+        </div>
+        <div class="sample">
+          <span class="badge ROTTEN badge-float">Rotten</span>
+          <h3>Sample report</h3>
+          <div class="row"><span>Token</span><b>$PETER (example)</b></div>
+          <div class="row"><span>Score</span><b class="bad">18 / 100</b></div>
+          <div class="row"><span>Bundled at launch</span><b class="bad">11 wallets · 16.6%</b></div>
+          <div class="row"><span>Dev sold</span><b class="bad">100%</b></div>
+          <div class="row"><span>Freeze authority</span><b>revoked</b></div>
+          <div class="row"><span>Copycat of</span><b class="bad">$PETER ($2.1M)</b></div>
+          <p class="fine" style="margin-top:14px">Your agent reads this as JSON and walks away.</p>
+          <svg class="trail" viewBox="0 0 160 40" aria-hidden="true"><g fill="#ff8a3d"><circle cx="10" cy="30" r="3"/><circle cx="34" cy="22" r="3.5"/><circle cx="60" cy="27" r="4"/><circle cx="88" cy="17" r="4.5"/><circle cx="118" cy="22" r="5"/><circle cx="150" cy="12" r="5.5"/></g></svg>
+        </div>
+      </div>
+
+      <section class="wrap sec">
+        <p class="label">How it works</p>
+        <h2>One sniff before every buy.</h2>
+        <div class="grid3">
+          <article class="card"><div class="ico"><svg><use href="#i-chain"/></svg></div><h3>Agent asks</h3><p>Your agent calls <code>check_token</code> over MCP, or <code>GET /v1/check/:mint</code>. No SDK, nothing to install beyond one URL.</p></article>
+          <article class="card"><div class="ico"><svg><use href="#i-nose"/></svg></div><h3>Sniff reads the chain</h3><p>Mint and freeze authority, Token-2022 traps, the pump.fun curve, the launch block, the dev's wallet, top holders and look-alike tickers, straight from Solana.</p></article>
+          <article class="card"><div class="ico"><svg><use href="#i-gavel"/></svg></div><h3>Agent decides</h3><p>A score, a verdict and every reason with its weight. Walk away on ROTTEN, size down on SUSPECT, go on CLEAN.</p></article>
+        </div>
+      </section>
+
+      <section class="wrap sec">
+        <p class="label">What it catches</p>
+        <h2>The tricks that drain wallets.</h2>
+        <div class="grid3">
+          <div class="card"><h3>Printers and freezers</h3><p>Live mint authority prints more supply. Live freeze authority locks your tokens so you can't sell. Permanent delegates and transfer hooks can take them.</p></div>
+          <div class="card"><h3>Launch bundles</h3><p>Wallets that bought in the same block as the creator, and how much of supply they still sit on, waiting for your buy.</p></div>
+          <div class="card"><h3>The dev's exit</h3><p>How much the creator bought at launch, what's left in the wallet, and how many other tokens the same wallet has launched before.</p></div>
+          <div class="card"><h3>Whales</h3><p>The top 10 holders with the curve and pools taken out, so the number means people, not liquidity.</p></div>
+          <div class="card"><h3>Copycats</h3><p>Another token with the same ticker and a market cap many times bigger. The classic fake.</p></div>
+          <div class="card"><h3>Fake volume</h3><p>Trading that looks automated rather than human, no trades in 24 hours, thin liquidity after graduation, no socials.</p></div>
+        </div>
+      </section>
+
+      <section class="wrap sec">
+        <p class="label">Verdicts</p>
+        <h2>Three verdicts. No guesswork.</h2>
+        <div class="verdicts">
+          <div class="card"><span class="badge CLEAN">Clean</span><p><b>70–100.</b> No major red flags found. The agent can go with its normal size.</p></div>
+          <div class="card"><span class="badge SUSPECT">Suspect</span><p><b>45–69.</b> Some risk signals. Size down, wait, or ask a human.</p></div>
+          <div class="card"><span class="badge ROTTEN">Rotten</span><p><b>0–44.</b> Serious red flags. The agent should not buy.</p></div>
+        </div>
+      </section>
+
+      <section class="wrap sec">
+        <p class="label">Trending on Solana</p>
+        <h2>Hot right now. Sniff any of them.</h2>
+        <div class="card" style="margin-top:28px"><div class="table-wrap" id="trending"><p class="loading">Loading trending tokens…</p></div></div>
+      </section>
+
+      <section class="wrap sec">
+        <p class="label">Connect in one line</p>
+        <h2>Works with the agents you already use.</h2>
+        <div class="grid2">
+          <div class="card"><h3>Claude Code</h3><div class="codebox"><button class="cp">copy</button><span class="api-cmd">claude mcp add --transport http sniff API/mcp</span></div></div>
+          <div class="card"><h3>Any agent (REST)</h3><div class="codebox"><button class="cp">copy</button><span class="api-curl">curl API/v1/check/MINT</span></div></div>
+        </div>
+        <p class="fine">Claude Desktop, Cursor and others: <a href="#/agents">full setup</a>.</p>
+      </section>
+
+      <section class="wrap sec">
+        <div class="card" style="text-align:center;padding:48px 22px;border-color:var(--line-2)">
+          <h2>Agents ape fast. Rugs move faster.</h2>
+          <p class="sub" style="margin:14px auto 24px">Give yours a nose.</p>
+          <a class="btn hot" href="#/agents">Connect your agent</a>
+        </div>
+      </section>
+    </section>
+
+    <!-- ================= CHECK ================= -->
+    <section class="page" data-page="check">
+      <div class="wrap" style="padding-top:36px">
+        <form class="checker" id="check-form" style="margin-top:0">
+          <input id="check-in" placeholder="Paste a token mint address" spellcheck="false" autocomplete="off" aria-label="Token mint address">
+          <button class="btn hot" type="submit">Sniff</button>
+        </form>
+        <div id="report"></div>
+      </div>
+    </section>
+
+    <!-- ================= AGENTS ================= -->
+    <section class="page" data-page="agents">
+      <div class="wrap pagehead">
+        <p class="label">For agents</p>
+        <h1>One link. Every agent.</h1>
+        <p class="sub" style="font-size:18px;margin-top:14px;color:var(--bone-2)">Sniff is a remote MCP server. Add the URL to your agent and it gets two tools: <code>check_token</code> and <code>trending_tokens</code>.</p>
+      </div>
+      <div class="wrap">
+        <div class="card" style="margin-top:28px">
+          <p class="label" style="margin:0">MCP endpoint</p>
+          <div class="codebox"><button class="cp">copy</button><span class="api-mcp">API/mcp</span></div>
+          <div class="tabs" role="tablist" id="agent-tabs">
+            <button class="tab" data-a="code" aria-selected="true">Claude Code</button>
+            <button class="tab" data-a="desktop" aria-selected="false">Claude Desktop</button>
+            <button class="tab" data-a="cursor" aria-selected="false">Cursor</button>
+            <button class="tab" data-a="other" aria-selected="false">Other agents</button>
+          </div>
+          <div id="agent-body"></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Tell your agent the rule</h3><p>Add this to your agent's system prompt:</p><div class="codebox"><button class="cp">copy</button>Before buying any Solana token, call the Sniff
+check_token tool. Never buy on ROTTEN. On SUSPECT,
+use at most a quarter of your normal size. Explain
+the top reasons to the user.</div></div>
+          <div class="card"><h3>Free, then a key</h3><p>Without a key you get <b><span class="free-n">30</span> checks a day</b> per IP. With a key there's no daily cap for normal use. Keys are paid by burning $SNIFF. <a href="#/keys" style="color:var(--orange);font-weight:600">Get a key</a></p><p class="fine">With a key, add <code>?key=sniff_…</code> to the MCP URL, or send <code>Authorization: Bearer sniff_…</code>.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RADAR ================= -->
+    <section class="page" data-page="radar">
+      <div class="wrap pagehead">
+        <p class="label">Sniff Radar <span class="soon">Coming soon</span></p>
+        <h1>Every new launch, already sniffed.</h1>
+        <p class="sub" style="font-size:18px;margin-top:14px;color:var(--bone-2)">Radar watches pump.fun and sniffs every token that starts getting trades, the moment it does. Filter to CLEAN only. Holders see it live. Everyone else sees it 15 minutes late, and on pump.fun, 15 minutes is everything.</p>
+      </div>
+      <div class="wrap">
+        <div class="card radar-demo" style="margin-top:28px">
+          <div class="table-wrap"><table><thead><tr><th>Token</th><th>Age</th><th>Curve</th><th>Verdict</th><th>Why</th></tr></thead><tbody>
+            <tr><td><b>$EXAMPLE1</b></td><td>2m</td><td>18%</td><td><span class="pill CLEAN">CLEAN 84</span></td><td>No bundle, dev holds 2.1%, socials set</td></tr>
+            <tr><td><b>$EXAMPLE2</b></td><td>3m</td><td>9%</td><td><span class="pill ROTTEN">ROTTEN 22</span></td><td>9 bundled wallets hold 31%</td></tr>
+            <tr><td><b>$EXAMPLE3</b></td><td>4m</td><td>27%</td><td><span class="pill SUSPECT">SUSPECT 61</span></td><td>Top 10 own 38%</td></tr>
+            <tr><td><b>$EXAMPLE4</b></td><td>6m</td><td>12%</td><td><span class="pill ROTTEN">ROTTEN 30</span></td><td>Copycat of a $4M token</td></tr>
+            <tr><td><b>$EXAMPLE5</b></td><td>7m</td><td>41%</td><td><span class="pill CLEAN">CLEAN 77</span></td><td>Dev hasn't sold, 0 bundles</td></tr>
+          </tbody></table></div>
+          <div class="lock"><div><p style="font:700 20px var(--display)">Live for holders of <span class="radar-min">250,000</span> $SNIFF</p><p class="fine">Example rows. Radar opens after launch.</p></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><div class="ico"><svg><use href="#i-radar"/></svg></div><h3>Radar</h3><p>A live feed of new pump.fun tokens with traction, each with a verdict and the top reason. Filter by verdict, curve progress and age. Holders of <b><span class="radar-min">250,000</span> $SNIFF</b> see it in real time.</p></div>
+          <div class="card"><div class="ico"><svg><use href="#i-bell"/></svg></div><h3>Wallet Watch</h3><p>A Telegram bot that keeps sniffing the tokens in your wallet and pings you when something turns: the dev starts selling, a bundle dumps, a verdict drops to ROTTEN. For holders of <b><span class="watch-min">2,000,000</span> $SNIFF</b>.</p></div>
+        </div>
+        <p class="fine">Holding is checked with a free wallet signature. Nothing is spent or locked.</p>
+      </div>
+    </section>
+
+    <!-- ================= TOKEN ================= -->
+    <section class="page" data-page="token">
+      <div class="wrap pagehead">
+        <p class="label">$SNIFF</p>
+        <h1>Hold it to see first. Burn it to build.</h1>
+        <p class="sub" style="font-size:18px;margin-top:14px;color:var(--bone-2)">Checks are free to try. Holding $SNIFF gets you the edge: live Radar and alerts on your bags. Agents that run all day burn it for a key. Creator fees buy it back and burn it.</p>
+      </div>
+      <div class="wrap">
+        <div class="tiers">
+          <div class="card tier"><span class="tag">Anyone</span><div class="amt">Free</div><ul><li><svg><use href="#i-check"/></svg><span><span class="free-n">30</span> checks a day</span></li><li><svg><use href="#i-check"/></svg><span>Checker, MCP and REST</span></li><li><svg><use href="#i-check"/></svg><span>Radar, 15 minutes late</span></li></ul></div>
+          <div class="card tier hot"><span class="tag">Holder</span><div class="amt"><span class="radar-min-short">250K</span> <small>$SNIFF</small></div><ul><li><svg><use href="#i-check"/></svg><span>Radar live, no delay</span></li><li><svg><use href="#i-check"/></svg><span>CLEAN-only filter</span></li><li><svg><use href="#i-check"/></svg><span>1,000 checks a day</span></li></ul></div>
+          <div class="card tier"><span class="tag">Watcher</span><div class="amt"><span class="watch-min-short">2M</span> <small>$SNIFF</small></div><ul><li><svg><use href="#i-check"/></svg><span>Everything in Holder</span></li><li><svg><use href="#i-check"/></svg><span>Wallet Watch alerts in Telegram</span></li><li><svg><use href="#i-check"/></svg><span>Early access to new features</span></li></ul></div>
+          <div class="card tier"><span class="tag">Builder</span><div class="amt"><span class="key-price-short">100K</span> <small>burned / 30d</small></div><ul><li><svg><use href="#i-check"/></svg><span>API key, no daily cap</span></li><li><svg><use href="#i-check"/></svg><span>For bots and agents running 24/7</span></li><li><svg><use href="#i-check"/></svg><span>Every key burns supply</span></li></ul></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="ico"><svg><use href="#i-flame"/></svg></div>
+            <h3>Where the creator fees go</h3>
+            <p>pump.fun pays the creator a fee on every trade of $SNIFF. A bot collects it and splits it:</p>
+            <div class="split"><div style="flex:7;background:var(--orange);color:#1a0e04">70% buy back &amp; burn</div><div style="flex:3;background:var(--card-2);color:var(--bone-2)">30% servers</div></div>
+            <p class="fine">Every buyback is a public transaction, posted weekly with the links. Servers means RPC and data, which get more expensive as more agents use Sniff.</p>
+          </div>
+          <div class="card">
+            <div class="ico"><svg><use href="#i-key"/></svg></div>
+            <h3>Three ways supply shrinks</h3>
+            <p><b>Buybacks:</b> 70% of creator fees buy $SNIFF and burn it.</p>
+            <p style="margin-top:10px"><b>API keys:</b> each key burns <span class="key-price">100,000</span> $SNIFF for <span class="key-days">30</span> days.</p>
+            <p style="margin-top:10px"><b>Holding:</b> Radar and Wallet Watch need $SNIFF in your wallet, so it stays off the market.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Mint address</h3>
+          <div class="ca" id="ca">The mint address appears here at launch. Until then, any token using this name is not ours.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px" id="token-links"></div>
+          <p class="fine">Fair launch on pump.fun. 1,000,000,000 supply, mint and freeze authority revoked by pump.fun. No presale, no team allocation.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= KEYS ================= -->
+    <section class="page" data-page="keys">
+      <div class="wrap pagehead">
+        <p class="label">API keys</p>
+        <h1>Burn $SNIFF. Get a key.</h1>
+        <p class="sub" style="font-size:18px;margin-top:14px;color:var(--bone-2)">Every <b><span class="key-price">100,000</span> $SNIFF</b> burned buys <b><span class="key-days">30</span> days</b> of an API key. The tokens are destroyed, supply goes down. Burning again extends your key.</p>
+      </div>
+      <div class="wrap" style="margin-top:28px">
+        <div class="keybox">
+          <div class="step" id="st1"><span class="n">1</span><div><b>Connect Phantom</b><p>The wallet that burns is the wallet that owns the key.</p><button class="btn sm" id="k-connect" style="margin-top:10px">Connect wallet</button></div></div>
+          <div class="step" id="st2"><span class="n">2</span><div><b>Burn $SNIFF</b><p>How many months? Each <span class="key-price">100,000</span> $SNIFF = <span class="key-days">30</span> days.</p><input id="k-amount" type="number" min="1" value="1" aria-label="Number of periods"><p class="fine" id="k-cost"></p><button class="btn sm hot" id="k-burn" style="margin-top:6px">Burn and continue</button><p class="fine">Already burned? Paste the transaction signature: <input id="k-tx" placeholder="5Kq…" spellcheck="false"></p></div></div>
+          <div class="step" id="st3"><span class="n">3</span><div><b>Sign and receive your key</b><p>A free message signature proves the burn is yours. No fee.</p><button class="btn sm" id="k-sign" style="margin-top:10px">Sign and get key</button><div id="k-out"></div></div></div>
+        </div>
+        <p class="fine" id="k-status" style="max-width:660px"></p>
+      </div>
+    </section>
+
+    <!-- ================= ROADMAP ================= -->
+    <section class="page" data-page="roadmap">
+      <div class="wrap pagehead"><p class="label">Roadmap</p><h1>From a sniff to a guard dog.</h1></div>
+      <div class="wrap road">
+        <div class="card now"><span class="ph">Phase 1 · Live</span><h3>Sniff</h3><ul><li class="ok"><svg><use href="#i-check"/></svg>Token checks with 0-100 score and reasons</li><li class="ok"><svg><use href="#i-check"/></svg>Authorities, Token-2022 traps, bundles, dev sells</li><li class="ok"><svg><use href="#i-check"/></svg>MCP server, REST API and checker</li><li class="ok"><svg><use href="#i-check"/></svg>Keys paid by burning $SNIFF</li><li class="ok"><svg><use href="#i-check"/></svg>Creator fee buyback &amp; burn</li></ul></div>
+        <div class="card"><span class="ph">Phase 2 · Next</span><h3>Radar</h3><ul><li><svg><use href="#i-dot"/></svg>Live feed of new launches, already sniffed</li><li><svg><use href="#i-dot"/></svg>Live for holders, 15 min delay for everyone else</li><li><svg><use href="#i-dot"/></svg>Wallet Watch alerts in Telegram</li></ul></div>
+        <div class="card"><span class="ph">Phase 3</span><h3>Track</h3><ul><li><svg><use href="#i-dot"/></svg>Dev history: how many tokens this wallet launched and rugged</li><li><svg><use href="#i-dot"/></svg>Bundle clusters across launches</li><li><svg><use href="#i-dot"/></svg>Batch checks for agents scanning many tokens</li></ul></div>
+        <div class="card"><span class="ph">Phase 4</span><h3>Guard</h3><ul><li><svg><use href="#i-dot"/></svg>Pre-trade guard: simulate the agent's exact swap</li><li><svg><use href="#i-dot"/></svg>Pay-per-call for agents alongside keys</li><li><svg><use href="#i-dot"/></svg>Scoring rules holders can propose and vote on</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ================= CHANGELOG ================= -->
+    <section class="page" data-page="changelog">
+      <div class="wrap pagehead"><p class="label">Changelog</p><h1>What shipped.</h1></div>
+      <div class="wrap log">
+        <div class="card"><b>v1.0 · Launch</b><small>Oct 2026</small><p style="color:var(--bone-2);margin-top:6px">Token checks for Solana and pump.fun, MCP server, REST API, checker, keys paid by burning $SNIFF, full docs.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= DOCS ================= -->
+    <section class="page" data-page="docs">
+      <div class="wrap docs">
+        <aside class="side" id="side"></aside>
+        <article class="doc"><div class="crumbs" id="crumbs"></div><div id="doc-body"></div><div class="pager" id="pager"></div></article>
+        <aside class="toc" id="toc"></aside>
+      </div>
+      <div hidden id="doc-src">
+        <section data-slug="introduction" data-group="Getting started" data-title="Introduction">
+          <p>Sniff is a risk check for Solana tokens, built for AI agents and tuned for pump.fun launches. Before an agent buys, it asks Sniff and gets back a <b>score from 0 to 100</b>, a <b>verdict</b> (CLEAN, SUSPECT or ROTTEN) and <b>every reason</b> behind the score.</p>
+          <h2>Why agents need it</h2>
+          <p>Agents are fast and literal. If a token shows momentum, an agent will buy it, even when the freeze authority is live, eleven bundled wallets hold a sixth of supply or the dev already sold. Sniff is the one question an agent should ask before every buy.</p>
+          <h2>What you can use</h2>
+          <ul><li><b>MCP server:</b> one URL for Claude, Cursor and any MCP-capable agent. See <a href="#/docs/mcp">MCP server</a>.</li><li><b>REST API:</b> <code>GET /v1/check/:mint</code> returns JSON. See <a href="#/docs/rest-api">REST API</a>.</li><li><b>Checker:</b> paste a mint on the <a href="#/">home page</a>.</li></ul>
+          <div class="note">Sniff shows risk signals from public data. It is not financial advice, and a CLEAN token can still go down.</div>
+        </section>
+        <section data-slug="quickstart" data-group="Getting started" data-title="Quickstart">
+          <h2>1. Try it</h2>
+          <div class="codebox"><button class="cp">copy</button><span class="api-curl">curl API/v1/check/MINT</span></div>
+          <h2>2. Connect your agent</h2>
+          <div class="codebox"><button class="cp">copy</button><span class="api-cmd">claude mcp add --transport http sniff API/mcp</span></div>
+          <p>Other agents: <a href="#/docs/mcp">MCP server</a>.</p>
+          <h2>3. Give it the rule</h2>
+          <p>Tell the agent to call <code>check_token</code> before every buy, refuse on ROTTEN and size down on SUSPECT. See <a href="#/docs/agent-prompts">Agent prompts</a>.</p>
+          <h2>4. Get a key when you need more</h2>
+          <p>The free tier is <span class="free-n">30</span> checks a day. For agents running all day, <a href="#/docs/keys">get a key</a>.</p>
+        </section>
+        <section data-slug="verdicts" data-group="Getting started" data-title="Verdicts">
+          <div class="table-wrap"><table><thead><tr><th>Verdict</th><th>Score</th><th>What the agent should do</th></tr></thead><tbody>
+            <tr><td><span class="pill CLEAN">CLEAN</span></td><td>70–100</td><td>No major red flags. Go with normal size.</td></tr>
+            <tr><td><span class="pill SUSPECT">SUSPECT</span></td><td>45–69</td><td>Some risk. Size down, wait or ask a human.</td></tr>
+            <tr><td><span class="pill ROTTEN">ROTTEN</span></td><td>0–44</td><td>Serious red flags. Do not buy.</td></tr>
+          </tbody></table></div>
+          <p>Every score starts at 100. Each red flag subtracts points and appears in <code>reasons</code> with its impact, so the verdict is never a black box.</p>
+        </section>
+        <section data-slug="mcp" data-group="Agents" data-title="MCP server">
+          <p>Sniff speaks the Model Context Protocol over streamable HTTP. Endpoint:</p>
+          <div class="codebox"><button class="cp">copy</button><span class="api-mcp">API/mcp</span></div>
+          <h2>Tools</h2>
+          <ul><li><code>check_token(token)</code>: the full risk report for a mint address.</li><li><code>trending_tokens(limit)</code>: launchpad tokens trending on Jupiter in the last hour, with market cap, holders and volume.</li></ul>
+          <h2>Claude Code</h2>
+          <div class="codebox"><button class="cp">copy</button><span class="api-cmd">claude mcp add --transport http sniff API/mcp</span></div>
+          <h2>Claude Desktop</h2>
+          <p>Settings → Connectors → <b>Add custom connector</b> → paste the endpoint. With a key, use <code>…/mcp?key=sniff_…</code>.</p>
+          <h2>Cursor</h2>
+          <div class="codebox"><button class="cp">copy</button><span class="api-cursor">{ "mcpServers": { "sniff": { "url": "API/mcp" } } }</span></div>
+          <h2>Using a key</h2>
+          <p>Send <code>Authorization: Bearer sniff_…</code> or append <code>?key=sniff_…</code> to the URL.</p>
+        </section>
+        <section data-slug="agent-prompts" data-group="Agents" data-title="Agent prompts">
+          <p>Agents follow rules best when they are short and absolute. Add this to the system prompt:</p>
+          <div class="codebox"><button class="cp">copy</button>Before buying any Solana token, call the Sniff
+check_token tool. Never buy on ROTTEN. On SUSPECT,
+use at most a quarter of your normal size. Explain
+the top reasons to the user.</div>
+          <h2>For trading bots</h2>
+          <p>Call the REST API inside your buy function and block the transaction when <code>verdict === "ROTTEN"</code>. Log the <code>reasons</code> so you can review every refusal.</p>
+        </section>
+        <section data-slug="rest-api" data-group="API" data-title="REST API">
+          <p>Base URL: <code class="api-base">API</code></p>
+          <div class="table-wrap"><table><thead><tr><th>Endpoint</th><th>What it returns</th></tr></thead><tbody>
+            <tr><td><code>GET /v1/check/:mint</code></td><td>Risk report for a token (see <a href="#/docs/response">Response</a>)</td></tr>
+            <tr><td><code>GET /v1/trending?limit=20</code></td><td>Launchpad tokens trending in the last hour</td></tr>
+            <tr><td><code>GET /v1/usage</code></td><td>Checks used and left today</td></tr>
+            <tr><td><code>POST /v1/keys</code></td><td>Creates a key from a $SNIFF burn (see <a href="#/docs/keys">Keys</a>)</td></tr>
+            <tr><td><code>POST /mcp</code></td><td>MCP JSON-RPC endpoint</td></tr>
+          </tbody></table></div>
+          <h2>Example</h2>
+          <div class="codebox"><button class="cp">copy</button><span class="api-curl-key">curl -H "Authorization: Bearer sniff_…" API/v1/check/MINT</span></div>
+          <p>Every check response carries an <code>x-sniff-remaining</code> header with the checks left today. Reports are cached for 60 seconds.</p>
+        </section>
+        <section data-slug="response" data-group="API" data-title="Response">
+          <div class="codebox">{
+  "token": "…pump", "symbol": "ABC", "name": "…",
+  "score": 58, "verdict": "SUSPECT",
+  "summary": "ABC: SUSPECT (58/100). 4 wallet(s) bought in the same block …",
+  "reasons": [ { "signal": "bundledHoldPct", "impact": -10, "severity": "medium", "text": "…" } ],
+  "positives": [ "Mint and freeze authority are revoked: …" ],
+  "notes": [],
+  "signals": { "stage": "curve", "curveProgressPct": 42.1, "bundledWallets": 4, … },
+  "links": { "pump": "…", "dexscreener": "…", "solscan": "…" },
+  "checkedAt": "2026-10-27T18:00:00Z", "version": "1.0.0"
+}</div>
+          <p>All signals are listed in <a href="#/docs/signals">Signals</a>. Fields can be <code>null</code> when data isn't available; <code>notes</code> says which checks were skipped and why.</p>
+        </section>
+        <section data-slug="limits" data-group="API" data-title="Limits & errors">
+          <div class="table-wrap"><table><thead><tr><th>Plan</th><th>Limit</th></tr></thead><tbody><tr><td>Free (no key)</td><td><span class="free-n">30</span> checks per IP per UTC day</td></tr><tr><td>Key</td><td>Fair use, <span class="key-cap">20,000</span> checks per day</td></tr></tbody></table></div>
+          <h2>Errors</h2>
+          <div class="table-wrap"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody>
+            <tr><td><code>400</code></td><td>Not a Solana address, or a bad request</td></tr><tr><td><code>401</code></td><td>Unknown or expired key</td></tr><tr><td><code>404</code></td><td>Not a token mint</td></tr><tr><td><code>429</code></td><td>Daily limit reached</td></tr><tr><td><code>503</code></td><td>Solana RPC busy, retry in a moment</td></tr>
+          </tbody></table></div>
+        </section>
+        <section data-slug="scoring" data-group="Methodology" data-title="Scoring">
+          <p>Every token starts at 100. Each red flag subtracts points:</p>
+          <div class="table-wrap"><table><thead><tr><th>Red flag</th><th>Points</th></tr></thead><tbody>
+            <tr><td>Non-transferable token</td><td>−60</td></tr>
+            <tr><td>Mint authority still active</td><td>−35</td></tr>
+            <tr><td>Permanent delegate (can move anyone's tokens)</td><td>−35</td></tr>
+            <tr><td>Copycat of a bigger token with the same ticker</td><td>−35</td></tr>
+            <tr><td>Freeze authority still active</td><td>−30</td></tr>
+            <tr><td>New accounts start frozen</td><td>−30</td></tr>
+            <tr><td>Launch-block wallets still hold ≥15% / ≥7% / ≥3%</td><td>−30 / −10 / −4</td></tr>
+            <tr><td>Creator sold or moved ≥50% / ≥10% of their launch buy</td><td>−22 / −8</td></tr>
+            <tr><td>Creator wallets hold ≥20% / ≥10% / ≥5%</td><td>−22 / −12 / −5</td></tr>
+            <tr><td>Top 10 holders own ≥50% / ≥35% / ≥25% (curve and pools excluded)</td><td>−20 / −12 / −5</td></tr>
+            <tr><td>Transfer hook</td><td>−20</td></tr>
+            <tr><td>Transfer fee ≥5% / any</td><td>−15 / −5</td></tr>
+            <tr><td>Dev wallet launched ≥50 / ≥10 tokens</td><td>−20 / −10</td></tr>
+            <tr><td>Graduated with under $5,000 liquidity</td><td>−10</td></tr>
+            <tr><td>No liquidity anywhere</td><td>−10</td></tr>
+            <tr><td>No trades in 24 hours</td><td>−8</td></tr>
+            <tr><td>Most trading looks automated (organic score under 20)</td><td>−8</td></tr>
+            <tr><td>Fewer than 20 holders</td><td>−6</td></tr>
+            <tr><td>No website or socials</td><td>−7</td></tr>
+            <tr><td>Launched under 15 minutes ago</td><td>−5</td></tr>
+            <tr><td>24h volume under $1,000</td><td>−4</td></tr>
+          </tbody></table></div>
+          <p>The score is clamped to 0–100. The weights are public on purpose: anyone can see why a token got its verdict.</p>
+        </section>
+        <section data-slug="signals" data-group="Methodology" data-title="Signals">
+          <div class="table-wrap"><table><thead><tr><th>Signal</th><th>Meaning</th></tr></thead><tbody>
+            <tr><td><code>pumpLaunch</code>, <code>stage</code>, <code>curveProgressPct</code></td><td>Launched on pump.fun; on the curve, graduated, or trading elsewhere</td></tr>
+            <tr><td><code>mintAuthority</code>, <code>freezeAuthority</code></td><td>Who can print or freeze. <code>null</code> means revoked</td></tr>
+            <tr><td><code>permanentDelegate</code>, <code>transferHook</code>, <code>transferFeePct</code>, <code>nonTransferable</code>, <code>defaultFrozen</code></td><td>Token-2022 extensions that can trap buyers</td></tr>
+            <tr><td><code>creator</code>, <code>launcher</code></td><td>The curve's creator wallet and the wallet that signed the launch</td></tr>
+            <tr><td><code>creatorBoughtPct</code>, <code>creatorPct</code>, <code>creatorSoldPct</code></td><td>The dev's launch buy, what they hold now, and the share gone</td></tr>
+            <tr><td><code>bundledWallets</code>, <code>bundledBoughtPct</code>, <code>bundledHoldPct</code></td><td>Other wallets buying in the launch block, what they bought and still hold</td></tr>
+            <tr><td><code>top10Pct</code>, <code>largestHolderPct</code>, <code>inPoolsPct</code></td><td>Concentration among people, and supply sitting in the curve or pools</td></tr>
+            <tr><td><code>copycatOf</code></td><td>A bigger token using the same ticker</td></tr>
+            <tr><td><code>devLaunches</code>, <code>devGraduated</code></td><td>How many tokens the dev wallet launched, and how many graduated</td></tr>
+            <tr><td><code>organicScore</code></td><td>0–100: how much of the trading looks like real people rather than bots</td></tr>
+            <tr><td><code>marketCapUsd</code>, <code>liquidityUsd</code>, <code>volume24hUsd</code>, <code>trades24h</code>, <code>holders</code>, <code>ageHours</code>, <code>socials</code></td><td>Market and activity</td></tr>
+          </tbody></table></div>
+        </section>
+        <section data-slug="data-sources" data-group="Methodology" data-title="Data sources">
+          <ul><li><b>Solana RPC:</b> the mint account and its extensions, the pump.fun bonding curve, the 20 largest token accounts and their owners, the launch block's transactions, the dev's and bundled wallets' balances.</li><li><b>Jupiter token API:</b> market cap, liquidity, volume, trades, holder count, organic score, the dev's launch history and look-alike tickers.</li><li><b>Token metadata file:</b> website and social links set at launch.</li></ul>
+          <p>Nothing is stored about the tokens or wallets you check. Reports are cached for 60 seconds.</p>
+        </section>
+        <section data-slug="limitations" data-group="Methodology" data-title="Limitations">
+          <ul><li>The launch block is found by walking back through the curve's history. For tokens with more than 8,000 curve transactions it is skipped, and <code>notes</code> says so.</li><li>Wallets can be split or funded secretly. Sniff links the dev's wallets through the launch, not through every transfer.</li><li>Holders come from the 20 largest token accounts, which covers concentration but not the full holder count.</li><li>A good score is not a promise: price can still fall. Use Sniff to avoid the worst, not to pick winners.</li></ul>
+        </section>
+        <section data-slug="token" data-group="$SNIFF" data-title="$SNIFF token">
+          <p>$SNIFF is the access token for Sniff. Checks stay free to try; holding and burning unlock the rest.</p>
+          <ul><li><b>Hold <span class="radar-min">250,000</span>:</b> Radar live, 1,000 checks a day.</li><li><b>Hold <span class="watch-min">2,000,000</span>:</b> Wallet Watch alerts.</li><li><b>Burn <span class="key-price">100,000</span> per <span class="key-days">30</span> days:</b> an API key with no daily cap.</li><li><b>Creator fees:</b> 70% buy back and burn $SNIFF, 30% pay for servers. Buybacks are posted weekly with transactions.</li></ul>
+          <p>Fair launch on pump.fun, 1,000,000,000 supply, no presale or team allocation.</p>
+        </section>
+        <section data-slug="keys" data-group="$SNIFF" data-title="Getting a key">
+          <ol><li>Open <a href="#/keys">API keys</a> and connect Phantom.</li><li>Burn $SNIFF: each <span class="key-price">100,000</span> = <span class="key-days">30</span> days. The site builds a standard SPL <code>BurnChecked</code> transaction; Phantom shows it before you approve.</li><li>Sign a free message. Sniff checks the burn on-chain and shows your key <b>once</b>.</li></ol>
+          <p>Burning again from the same wallet extends all of its keys. One burn transaction can create one key purchase.</p>
+          <h2>Via the API</h2>
+          <div class="codebox">POST /v1/keys
+{ "address": "&lt;wallet&gt;", "tx": "&lt;burn signature&gt;",
+  "message": "Sniff API key\nWallet: &lt;wallet&gt;\nTx: &lt;signature&gt;\nTime: 2026-10-27T18:00:00Z",
+  "signature": "&lt;base58 ed25519 signature of message&gt;" }</div>
+        </section>
+        <section data-slug="privacy" data-group="Trust" data-title="Privacy & security">
+          <ul><li>Sniff never asks for seed phrases, private keys or token approvals. A key needs one burn and one free message signature.</li><li>API keys are stored only as hashes.</li><li>IP addresses are used only to count free checks per day.</li><li>The code is open source on GitHub.</li></ul>
+        </section>
+        <section data-slug="faq" data-group="Trust" data-title="FAQ">
+          <h2>Is a CLEAN token safe?</h2><p>It has no major red flags in the data Sniff reads. It can still fall in price.</p>
+          <h2>Why did a good project get SUSPECT?</h2><p>Read the reasons: a dev holding a big bag or a concentrated top 10 is real risk for buyers, even when it's planned. Projects can explain it publicly.</p>
+          <h2>Can a project pay for a better score?</h2><p>No. The rules are public and the same for every token.</p>
+          <h2>Does Sniff work outside pump.fun?</h2><p>Yes, for any Solana token: authorities, Token-2022 traps, holders, market and copycats. The launch-block checks are pump.fun only.</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div><a class="brand" href="#/" style="font-size:20px"><svg style="width:30px;height:30px"><use href="#logo"/></svg>Sniff</a><p style="color:var(--muted);font-size:14px;margin-top:8px">Smell the rug before you buy it.</p></div>
+      <div><b>Product</b><a href="#/">Checker</a><a href="#/agents">For agents</a><a href="#/radar">Radar</a><a href="#/keys">API keys</a><a href="#/changelog">Changelog</a></div>
+      <div><b>Docs</b><a href="#/docs/quickstart">Quickstart</a><a href="#/docs/mcp">MCP server</a><a href="#/docs/rest-api">REST API</a><a href="#/docs/scoring">Scoring</a></div>
+      <div><b>Community</b><span id="foot-links"></span><a href="#/token">$SNIFF</a></div>
+    </div>
+    <div class="wrap legal">Sniff provides automated risk signals from public on-chain data. It is not financial advice. Not affiliated with pump.fun, Solana, Phantom, DexScreener, Anthropic or Cursor.</div>
+  </footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== Settings: fill these in and re-upload this one file =====
+    const CONFIG = {
+      api: 'https://sniff-api.orchard-api.workers.dev', // Sniff API worker
+      mint: '',          // $SNIFF mint after launch
+      x: 'https://x.com/snifftrade_sol',
+      github: '',        // GitHub repo link
+      keyPrice: 100000,  // $SNIFF burned per period (must match KEY_PRICE on the worker)
+      keyDays: 30,
+      freePerDay: 30,
+      keyCap: 20000,
+      radarMin: 250000,
+      watchMin: 2000000,
+    };
+    // ===============================================================
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const fmt = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }));
+    const usd = (n) => (n == null ? '—' : '$' + (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : Math.round(n)));
+    const pct = (n, d = 1) => (n == null ? '—' : Number(n).toFixed(d) + '%');
+    const short = (a) => (a ? a.slice(0, 4) + '…' + a.slice(-4) : '');
+    const kshort = (n) => (n >= 1e6 ? n / 1e6 + 'M' : n >= 1e3 ? n / 1e3 + 'K' : String(n));
+    const isMint = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s.trim());
+    const icon = (id) => `<svg><use href="#${id}"/></svg>`;
+    function toast(t) { $('toast').textContent = t; $('toast').classList.add('on'); clearTimeout(window._t); window._t = setTimeout(() => $('toast').classList.remove('on'), 2600); }
+
+    // ---------- report ----------
+    const COLORS = { CLEAN: 'var(--clean)', SUSPECT: 'var(--suspect)', ROTTEN: 'var(--rotten)' };
+    const NAMES = { CLEAN: 'Clean', SUSPECT: 'Suspect', ROTTEN: 'Rotten' };
+    const authority = (a) => (a ? `<span style="color:var(--rotten)">live · ${short(a)}</span>` : 'revoked');
+    function renderReport(r) {
+      const s = r.signals;
+      const row = (k, v) => `<span>${k}</span><b>${v}</b>`;
+      return `<div class="report">
+        <div class="card">
+          <div class="rep-head">
+            <div><h2>$${esc(r.symbol || '?')} <span style="font-weight:500;color:var(--muted);font-size:.45em">${esc(r.name || '')}</span></h2><p class="addr">${esc(r.token)}</p>
+              <div class="gauge"><b style="color:${COLORS[r.verdict]}">${r.score}</b><span>/ 100</span></div>
+              <div class="bar"><i style="width:${r.score}%;background:${COLORS[r.verdict]}"></i></div></div>
+            <span class="badge big ${r.verdict}">${NAMES[r.verdict]}</span>
+          </div>
+          <p style="margin-top:16px;color:var(--bone-2)">${esc(r.summary)}</p>
+        </div>
+        <div class="rep-grid">
+          <div class="card"><h3>Why this score</h3>
+            ${r.reasons.length ? r.reasons.map((x) => `<div class="reason ${x.severity}"><span class="imp">${x.impact}</span><span>${esc(x.text)}</span></div>`).join('') : '<p class="fine">No deductions.</p>'}
+            ${r.positives.length ? `<h3 style="margin-top:22px">In its favour</h3>${r.positives.map((p) => `<div class="good">${icon('i-check')}<span>${esc(p)}</span></div>`).join('')}` : ''}
+            ${r.notes?.length ? `<div style="margin-top:14px">${r.notes.map((n) => `<div class="noteline">${icon('i-info')}<span>${esc(n)}</span></div>`).join('')}</div>` : ''}
+          </div>
+          <div class="card"><h3>Signals</h3><div class="kv">
+            ${row('Stage', esc(s.stage) + (s.curveProgressPct != null ? ` · ${s.curveProgressPct}%` : ''))}
+            ${row('Mint authority', authority(s.mintAuthority))}${row('Freeze authority', authority(s.freezeAuthority))}
+            ${s.permanentDelegate ? row('Permanent delegate', `<span style="color:var(--rotten)">${short(s.permanentDelegate)}</span>`) : ''}
+            ${s.transferHook ? row('Transfer hook', `<span style="color:var(--suspect)">${short(s.transferHook)}</span>`) : ''}
+            ${s.transferFeePct ? row('Transfer fee', s.transferFeePct + '%') : ''}
+            ${row('Bundled at launch', s.bundledWallets == null ? 'n/a' : `${s.bundledWallets} · holds ${pct(s.bundledHoldPct)}`)}
+            ${row('Dev bought', pct(s.creatorBoughtPct, 2))}${row('Dev holds', pct(s.creatorPct, 2))}${row('Dev sold', pct(s.creatorSoldPct))}
+            ${row('Top 10', pct(s.top10Pct))}${row('In curve / pools', pct(s.inPoolsPct))}
+            ${row('Market cap', usd(s.marketCapUsd))}${row('Liquidity', usd(s.liquidityUsd))}
+            ${row('Volume 24h', usd(s.volume24hUsd))}${row('Trades 24h', fmt(s.trades24h))}
+            ${row('Age', s.ageHours == null ? '—' : s.ageHours + 'h')}${row('Socials', s.socials.length ? esc(s.socials.join(', ')) : 'none')}
+            ${s.copycatOf ? row('Copycat of', `<a href="#/check/${s.copycatOf.token}">$${esc(s.copycatOf.symbol)}</a>`) : ''}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">${r.links.pump ? `<a class="btn sm" href="${r.links.pump}" target="_blank" rel="noopener">pump.fun <svg class="i"><use href="#i-out"/></svg></a>` : ''}<a class="btn sm" href="${r.links.dexscreener}" target="_blank" rel="noopener">DexScreener <svg class="i"><use href="#i-out"/></svg></a><a class="btn sm" href="${r.links.solscan}" target="_blank" rel="noopener">Solscan <svg class="i"><use href="#i-out"/></svg></a><button class="btn sm" id="copy-json">Copy JSON</button></div>
+          <p class="fine">Checked ${new Date(r.checkedAt).toLocaleString()}${r.cached ? ' · cached' : ''}</p></div>
+        </div>
+        <p class="fine">${esc(r.disclaimer)}</p></div>`;
+    }
+
+    let lastReport = null;
+    async function runCheck(mint) {
+      mint = mint.trim();
+      $('check-in').value = mint;
+      if (!isMint(mint)) { $('report').innerHTML = '<div class="err">That is not a Solana mint address. It should be 32 to 44 letters and numbers, like the ones ending in "pump".</div>'; return; }
+      $('report').innerHTML = `<p class="loading"><svg class="sniffer" viewBox="0 0 64 64"><use href="#logo"/></svg>Sniffing… authorities, curve, launch block, dev wallet, holders…</p>`;
+      try {
+        const res = await fetch(`${CONFIG.api}/v1/check/${mint}`);
+        const j = await res.json();
+        if (!res.ok) { $('report').innerHTML = `<div class="err">${esc(j.error || 'Check failed.')}${res.status === 429 ? ` <a href="#/keys"><b>Get a key</b></a>` : ''}</div>`; return; }
+        lastReport = j;
+        $('report').innerHTML = renderReport(j);
+        document.title = `$${j.symbol}: ${j.verdict} (${j.score}) · Sniff`;
+      } catch { $('report').innerHTML = '<div class="err">Could not reach the Sniff API. Try again in a moment.</div>'; }
+    }
+
+    async function loadTrending() {
+      try {
+        const j = await (await fetch(`${CONFIG.api}/v1/trending?limit=12`)).json();
+        if (!j.tokens?.length) throw new Error();
+        $('trending').innerHTML = `<table><thead><tr><th>Token</th><th>Market cap</th><th>Holders</th><th>Volume 1h</th><th>Age</th><th></th></tr></thead><tbody>${j.tokens.map((x) => `<tr><td><b>$${esc(x.symbol)}</b><br><span class="mono" style="font-size:12px;color:var(--muted)">${short(x.token)} · ${esc(x.launchpad)}</span></td><td>${usd(x.marketCapUsd)}</td><td>${fmt(x.holders)}</td><td>${usd(x.volume1hUsd)}</td><td>${x.ageHours == null ? '—' : x.ageHours < 48 ? x.ageHours + 'h' : Math.round(x.ageHours / 24) + 'd'}</td><td><a class="btn sm" href="#/check/${x.token}">Sniff</a></td></tr>`).join('')}</tbody></table>`;
+      } catch { $('trending').innerHTML = '<p class="loading">Could not load trending tokens right now.</p>'; }
+    }
+
+    // ---------- agents page ----------
+    const AGENT = {
+      code: () => `<p class="fine" style="margin-top:14px">In a terminal:</p><div class="codebox"><button class="cp">copy</button>claude mcp add --transport http sniff ${CONFIG.api}/mcp</div><p class="fine">With a key: <code>claude mcp add --transport http sniff ${CONFIG.api}/mcp --header "Authorization: Bearer sniff_…"</code></p>`,
+      desktop: () => `<ol style="margin-top:14px;color:var(--bone-2)"><li>Open Claude Desktop → <b>Settings → Connectors</b>.</li><li>Click <b>Add custom connector</b>, name it <b>Sniff</b>.</li><li>Paste <code>${CONFIG.api}/mcp</code> (or <code>…/mcp?key=sniff_…</code> with a key) and save.</li><li>In a chat, ask: <i>"Sniff this token before we buy: …"</i></li></ol>`,
+      cursor: () => `<p class="fine" style="margin-top:14px">Add to <code>~/.cursor/mcp.json</code>:</p><div class="codebox"><button class="cp">copy</button>{
+  "mcpServers": {
+    "sniff": { "url": "${CONFIG.api}/mcp" }
+  }
+}</div>`,
+      other: () => `<p style="margin-top:14px;color:var(--bone-2)">Any MCP client that supports remote servers over streamable HTTP can use <code>${CONFIG.api}/mcp</code>. Without MCP, call the REST API:</p><div class="codebox"><button class="cp">copy</button>curl ${CONFIG.api}/v1/check/MINT</div>`,
+    };
+    function agentTab(a) { document.querySelectorAll('#agent-tabs .tab').forEach((t) => t.setAttribute('aria-selected', t.dataset.a === a)); $('agent-body').innerHTML = AGENT[a](); }
+
+    // ---------- Solana bits for the burn: base58 and a one-instruction legacy transaction ----------
+    const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    function b58enc(bytes) { let n = 0n; for (const b of bytes) n = (n << 8n) + BigInt(b); let s = ''; while (n > 0n) { s = B58[Number(n % 58n)] + s; n /= 58n; } for (const b of bytes) { if (b) break; s = '1' + s; } return s; }
+    function b58dec(s) { let n = 0n; for (const c of s) n = n * 58n + BigInt(B58.indexOf(c)); const out = []; while (n > 0n) { out.unshift(Number(n & 255n)); n >>= 8n; } for (const c of s) { if (c !== '1') break; out.unshift(0); } return Uint8Array.from(out); }
+    const u64le = (v) => { const b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, v, true); return b; };
+    const cat = (...parts) => { const out = new Uint8Array(parts.reduce((t, p) => t + p.length, 0)); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out; };
+    // BurnChecked (instruction 15): accounts [token account (w), mint (w), owner (signer)]
+    function burnMessage(owner, tokenAccount, mint, program, amount, decimals, blockhash) {
+      const keys = [owner, tokenAccount, mint, program].map(b58dec);
+      const data = cat(Uint8Array.of(15), u64le(amount), Uint8Array.of(decimals));
+      return cat(
+        Uint8Array.of(1, 0, 1), // 1 signer, 0 read-only signed, 1 read-only unsigned (the token program)
+        Uint8Array.of(keys.length), ...keys,
+        b58dec(blockhash),
+        Uint8Array.of(1, 3, 3, 1, 2, 0, data.length), data,
+      );
+    }
+    const rpc = async (method, params) => { const j = await (await fetch(`${CONFIG.api}/v1/rpc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })).json(); if (j.error) throw new Error(j.error.message); return j.result; };
+
+    // ---------- keys: burn $SNIFF, sign, receive a key ----------
+    let wallet = null;
+    const phantom = () => window.phantom?.solana || (window.solana?.isPhantom ? window.solana : null);
+    async function connect() {
+      const p = phantom();
+      if (!p) { toast('Phantom not found. Open this page in Phantom or install it.'); return null; }
+      const r = await p.connect();
+      wallet = r.publicKey.toString();
+      $('k-connect').textContent = short(wallet);
+      $('st1').classList.add('done');
+      return wallet;
+    }
+    const status = (t) => ($('k-status').textContent = t);
+    async function burn() {
+      if (!CONFIG.mint) { toast('Keys open at the $SNIFF launch.'); return; }
+      if (!wallet && !(await connect())) return;
+      const periods = Math.max(1, Math.floor(Number($('k-amount').value) || 1));
+      try {
+        status('Finding your $SNIFF…');
+        const accs = await rpc('getTokenAccountsByOwner', [wallet, { mint: CONFIG.mint }, { encoding: 'jsonParsed' }]);
+        const acc = accs.value.sort((a, b) => Number(b.account.data.parsed.info.tokenAmount.amount) - Number(a.account.data.parsed.info.tokenAmount.amount))[0];
+        if (!acc) { status('No $SNIFF in this wallet.'); return; }
+        const decimals = acc.account.data.parsed.info.tokenAmount.decimals;
+        const amount = BigInt(CONFIG.keyPrice) * BigInt(periods) * 10n ** BigInt(decimals);
+        if (BigInt(acc.account.data.parsed.info.tokenAmount.amount) < amount) { status(`Not enough $SNIFF: you need ${(CONFIG.keyPrice * periods).toLocaleString('en-US')}.`); return; }
+        const { value: { blockhash } } = await rpc('getLatestBlockhash', [{ commitment: 'confirmed' }]);
+        const msg = burnMessage(wallet, acc.pubkey, CONFIG.mint, acc.account.owner, amount, decimals, blockhash);
+        status('Approve the burn in Phantom…');
+        const { signature } = await phantom().request({ method: 'signAndSendTransaction', params: { message: b58enc(msg) } });
+        $('k-tx').value = signature;
+        status('Burn sent. Waiting for confirmation…');
+        for (let i = 0; i < 40; i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const st = (await rpc('getSignatureStatuses', [[signature]])).value[0];
+          if (st?.err) { status('The burn failed on-chain.'); return; }
+          if (st && (st.confirmationStatus === 'confirmed' || st.confirmationStatus === 'finalized')) break;
+        }
+        $('st2').classList.add('done');
+        status('Burn confirmed. Now sign to receive your key.');
+      } catch (e) { status(e.code === 4001 ? 'Cancelled.' : 'Burn failed: ' + (e.message || e)); }
+    }
+    async function sign() {
+      const tx = $('k-tx').value.trim();
+      if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(tx)) { toast('Burn first, or paste the burn transaction signature.'); return; }
+      if (!wallet && !(await connect())) return;
+      const message = `Sniff API key\nWallet: ${wallet}\nTx: ${tx}\nTime: ${new Date().toISOString()}`;
+      try {
+        const { signature: sig } = await phantom().signMessage(new TextEncoder().encode(message), 'utf8');
+        const signature = b58enc(sig);
+        let res, j;
+        for (let i = 0; i < 6; i++) { res = await fetch(`${CONFIG.api}/v1/keys`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address: wallet, message, signature, tx }) }); j = await res.json(); if (res.status !== 404) break; await new Promise((r) => setTimeout(r, 3000)); }
+        if (!res.ok) { status(j.error || 'Could not create the key.'); return; }
+        $('st3').classList.add('done');
+        $('k-out').innerHTML = `<div class="keyout">${esc(j.key)}</div><p class="fine">Valid until ${new Date(j.expires).toLocaleDateString()} (${j.days} days). <b>Copy it now: it is shown once.</b></p><button class="btn sm" id="copy-key">Copy key</button>`;
+        $('copy-key').onclick = () => navigator.clipboard.writeText(j.key).then(() => toast('Key copied.'));
+        status('');
+      } catch (e) { status(e.code === 4001 ? 'Cancelled.' : 'Signing failed.'); }
+    }
+
+    // ---------- docs ----------
+    const DOCS = [...document.querySelectorAll('#doc-src > section')].map((s) => ({ slug: s.dataset.slug, group: s.dataset.group, title: s.dataset.title, el: s }));
+    function showDoc(slug) {
+      const i = Math.max(0, DOCS.findIndex((d) => d.slug === slug)), d = DOCS[i];
+      let side = '', g = '';
+      for (const x of DOCS) { if (x.group !== g) { g = x.group; side += `<b>${esc(g)}</b>`; } side += `<a href="#/docs/${x.slug}" class="${x === d ? 'on' : ''}">${esc(x.title)}</a>`; }
+      $('side').innerHTML = side;
+      $('crumbs').innerHTML = `<a href="#/docs/introduction">Docs</a> / ${esc(d.group)} / ${esc(d.title)}`;
+      $('doc-body').innerHTML = `<h1>${esc(d.title)}</h1>` + d.el.innerHTML;
+      const hs = [...$('doc-body').querySelectorAll('h2')];
+      hs.forEach((h, k) => (h.id = 'h-' + k));
+      $('toc').innerHTML = hs.length ? '<p>On this page</p>' + hs.map((h) => `<a href="#/docs/${d.slug}" data-h="${h.id}">${esc(h.textContent)}</a>`).join('') : '';
+      const prev = DOCS[i - 1], next = DOCS[i + 1];
+      $('pager').innerHTML = (prev ? `<a href="#/docs/${prev.slug}"><small>← Previous</small><b>${esc(prev.title)}</b></a>` : '') + (next ? `<a class="nx" href="#/docs/${next.slug}"><small>Next →</small><b>${esc(next.title)}</b></a>` : '');
+      document.title = `${d.title} · Sniff docs`;
+    }
+
+    // ---------- routing ----------
+    const PAGES = { agents: 'For agents', radar: 'Radar', keys: 'API keys', token: '$SNIFF', roadmap: 'Roadmap', changelog: 'Changelog', docs: 'Docs', check: 'Check' };
+    let page = 'home';
+    function route() {
+      const parts = location.hash.replace(/^#\/?/, '').split('/');
+      page = PAGES[parts[0]] ? parts[0] : 'home';
+      document.querySelectorAll('.page').forEach((p) => p.classList.toggle('on', p.dataset.page === page));
+      document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === (page === 'check' ? 'home' : page)));
+      $('menu').classList.remove('open');
+      if (page === 'docs') showDoc(parts[1]);
+      else if (page === 'check') runCheck(decodeURIComponent(parts[1] || ''));
+      else document.title = page === 'home' ? 'Sniff — token checks for AI agents on Solana' : `${PAGES[page]} · Sniff`;
+      window.scrollTo(0, 0);
+    }
+
+    function setup() {
+      const swap = (sel, fn) => document.querySelectorAll(sel).forEach((el) => (el.textContent = fn(el.textContent)));
+      swap('.api-cmd, .api-curl, .api-mcp, .api-cursor, .api-curl-key, .api-base', (t) => t.replace(/API/g, CONFIG.api));
+      const fill = (sel, v) => document.querySelectorAll(sel).forEach((el) => (el.textContent = v));
+      fill('.free-n', CONFIG.freePerDay);
+      fill('.key-price', CONFIG.keyPrice.toLocaleString('en-US'));
+      fill('.key-price-short', kshort(CONFIG.keyPrice));
+      fill('.key-days', CONFIG.keyDays);
+      fill('.key-cap', CONFIG.keyCap.toLocaleString('en-US'));
+      fill('.radar-min', CONFIG.radarMin.toLocaleString('en-US'));
+      fill('.radar-min-short', kshort(CONFIG.radarMin));
+      fill('.watch-min', CONFIG.watchMin.toLocaleString('en-US'));
+      fill('.watch-min-short', kshort(CONFIG.watchMin));
+      const links = [];
+      if (CONFIG.mint) {
+        $('ca').textContent = CONFIG.mint;
+        links.push(`<a class="btn hot" href="https://pump.fun/coin/${CONFIG.mint}" target="_blank" rel="noopener">Buy $SNIFF on pump.fun</a>`, `<a class="btn" href="#/check/${CONFIG.mint}">Sniff sniffs $SNIFF</a>`);
+        $('nav-buy').href = `https://pump.fun/coin/${CONFIG.mint}`; $('nav-buy').target = '_blank';
+      }
+      if (CONFIG.x) links.push(`<a class="btn" href="${CONFIG.x}" target="_blank" rel="noopener">X</a>`);
+      if (CONFIG.github) links.push(`<a class="btn" href="${CONFIG.github}" target="_blank" rel="noopener">GitHub</a>`);
+      $('token-links').innerHTML = links.join('');
+      $('foot-links').innerHTML = (CONFIG.x ? `<a href="${CONFIG.x}" target="_blank" rel="noopener">X</a>` : '') + (CONFIG.github ? `<a href="${CONFIG.github}" target="_blank" rel="noopener">GitHub</a>` : '');
+      $('k-amount').oninput = () => { const n = Math.max(1, Math.floor(Number($('k-amount').value) || 1)); $('k-cost').textContent = `${(n * CONFIG.keyPrice).toLocaleString('en-US')} $SNIFF → ${n * CONFIG.keyDays} days`; };
+      $('k-amount').oninput();
+
+      $('home-form').onsubmit = (e) => { e.preventDefault(); location.hash = '#/check/' + $('home-in').value.trim(); };
+      $('check-form').onsubmit = (e) => { e.preventDefault(); location.hash = '#/check/' + $('check-in').value.trim(); };
+      $('burger').onclick = () => $('menu').classList.toggle('open');
+      $('agent-tabs').onclick = (e) => { const a = e.target.closest('[data-a]')?.dataset.a; if (a) agentTab(a); };
+      $('k-connect').onclick = connect;
+      $('k-burn').onclick = burn;
+      $('k-sign').onclick = sign;
+      $('toc').onclick = (e) => { const t = e.target.closest('[data-h]'); if (t) { e.preventDefault(); document.getElementById(t.dataset.h).scrollIntoView({ behavior: 'smooth' }); } };
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('cp')) { const box = e.target.parentElement; const text = box.textContent.replace(/^copy/, '').trim(); navigator.clipboard.writeText(text).then(() => toast('Copied.')); }
+        if (e.target.id === 'copy-json' && lastReport) navigator.clipboard.writeText(JSON.stringify(lastReport, null, 2)).then(() => toast('JSON copied.'));
+      });
+      agentTab('code');
+    }
+
+    setup();
+    window.addEventListener('hashchange', route);
+    route();
+    loadTrending();
+  </script>
+</body>
+</html>
