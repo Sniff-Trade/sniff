@@ -316,7 +316,7 @@
 
   <main>
     <!-- ================= HOME ================= -->
-    <section class="page" data-page="home">
+    <section class="page on" data-page="home">
       <div class="wrap hero">
         <div>
           <span class="kicker"><i></i>MCP · REST · Solana · pump.fun</span>
@@ -726,7 +726,7 @@ the top reasons to the user.</div>
     // ===== Settings: fill these in and re-upload this one file =====
     const CONFIG = {
       api: 'https://sniff-api.orchard-api.workers.dev', // Sniff API worker
-      mint: '',          // $SNIFF mint after launch
+      mint: 'AZP1ocAtvJdE19wZ98M5JykfyCw85z5YbGK9oH4Kpump',          // $SNIFF mint after launch
       x: 'https://x.com/snifftrade_sol',
       github: 'https://github.com/Sniff-Trade/sniff',        // GitHub repo link
       keyPrice: 100000,  // $SNIFF burned per period (must match KEY_PRICE on the worker)
@@ -980,10 +980,10 @@ the top reasons to the user.</div>
       agentTab('code');
     }
 
-    setup();
+    try { setup(); } catch (e) { console.error(e); }
     window.addEventListener('hashchange', route);
-    route();
-    loadTrending();
+    try { route(); } catch (e) { console.error(e); }
+    try { loadTrending(); } catch (e) { console.error(e); }
   </script>
 </body>
 </html>

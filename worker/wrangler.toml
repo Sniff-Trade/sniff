@@ -10,7 +10,7 @@ database_id = "6e72d3ec-43fa-49b3-8268-9c308d4dd4da"
 
 [vars]
 # $SNIFF mint after launch. Empty = keys not on sale yet (free tier still works).
-TOKEN_ADDRESS = ""
+TOKEN_ADDRESS = "AZP1ocAtvJdE19wZ98M5JykfyCw85z5YbGK9oH4Kpump"
 TOKEN_DECIMALS = "6"
 # $SNIFF burned per KEY_DAYS days of an API key.
 KEY_PRICE = "100000"
